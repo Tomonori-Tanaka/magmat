@@ -30,12 +30,12 @@ def get_moments(moments_file, num_atom):
                 energies = np.append(energies, energy)
             else:
                 line = line.split()
-                moment_magnitude = line[0]
-                theta = line[1]
-                phi = line[2]
-                cosine_l = line[3]
-                cosine_m = line[4]
-                cosine_n = line[5]
+                moment_magnitude = float(line[0])
+                theta = float(line[1])
+                phi = float(line[2])
+                cosine_l = float(line[3])
+                cosine_m = float(line[4])
+                cosine_n = float(line[5])
 
                 moment_on_an_atom = np.array([moment_magnitude,
                                               theta,
