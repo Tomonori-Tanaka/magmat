@@ -40,12 +40,12 @@ def run_parse(file_results):
                     n_direction_cos = np.cos(np.deg2rad(theta))
                     # n_direction_cos = round(n_direction_cos, 8)
 
-                    print('{:15.7f}'.format(sdiff),
-                          '{:20.7f}'.format(theta),
-                          '{:15.7f}'.format(phi),
-                          '{:20.7f}'.format(l_direction_cos),
-                          '{:15.7f}'.format(m_direction_cos),
-                          '{:15.7f}'.format(n_direction_cos))
+                    print('{:15.9f}'.format(sdiff),
+                          '{:20.9f}'.format(theta),
+                          '{:15.9f}'.format(phi),
+                          '{:20.9f}'.format(l_direction_cos),
+                          '{:15.9f}'.format(m_direction_cos),
+                          '{:15.9f}'.format(n_direction_cos))
 
 
 if __name__ == '__main__':
