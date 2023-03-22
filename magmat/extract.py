@@ -1,6 +1,7 @@
 import argparse
 import re
 import numpy as np
+import sys
 
 parser = argparse.ArgumentParser()
 
@@ -15,6 +16,7 @@ def run_parse(file_results):
     pattern_spin = re.compile(pattern_spin)
     pattern_etot = '^Utot\.\s+[+-]?\d+\.\d+'
     pattern_etot = re.compile(pattern_etot)
+    pattern_ecs = re.compile('^Ucs\.\s+[+-]?\d+\.\d+')
 
     for i, file in enumerate(file_results):
         with open(file, encoding='utf-8') as f:
@@ -23,10 +25,19 @@ def run_parse(file_results):
                 line = line.strip()
                 # print(line.strip())
 
+                if pattern_ecs.search(line):
+                    line_ecs = line.split()
+                    ecs = float(line_ecs[1])
+
                 if pattern_etot.search(line):
                     line_etot = line.split()
-                    etot = line_etot[1]
-                    print(etot)
+                    etot = float(line_etot[1])
+                    try:
+                        etot = etot - ecs
+                        print(etot)
+                        del(ecs)
+                    except:
+                        sys.exit("Probably, program cannot catch Ucs. line.")
 
                 if pattern_spin.search(line):
                     line_spin = line.split()
