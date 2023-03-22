@@ -2,12 +2,12 @@ import numpy as np
 import pymc as pm
 import matplotlib.pyplot as plt
 import re
-from get_data.get_moments import get_moments
+from magmat.get_moments import get_moments
 
 # https://qiita.com/takubb/items/a2e02fe61aad80f8f2f3
 
 num_atoms = 2
-moments_file = "MOMENTS_small"
+moments_file = "MOMENTS"
 energies, moments = get_moments(moments_file, num_atoms)
 
 
