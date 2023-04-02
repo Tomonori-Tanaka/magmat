@@ -1,0 +1,3 @@
+
+class MAGMAT:
+    pass
