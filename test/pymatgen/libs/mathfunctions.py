@@ -12,11 +12,18 @@ def rotvec(vec_in, mat, mode='N'):
     mat: rotation matrix. ndarray(3x3)
     :return: vec_out: output vector.  ndarray([3])
     """
-
+    vec_in = np.array(vec_in)
+    vec_out = np.empty_like(vec_in)
+    mat = np.array(mat)
     if mode=='N':
-        vec_out = mat@vec_in
+        # vec_out = mat@vec_in
+        for i in range(3):
+            vec_out[i] = mat[i][0] * vec_in[0] + mat[i][1] * vec_in[1] + mat[i][2] * vec_in[2]
+
     elif mode=='T':
-        vec_out = mat.T@vec_in
+        # vec_out = mat.T@vec_in
+        for i in range(3):
+            vec_out[i] = mat[0][i] * vec_in[0] + mat[1][i] * vec_in[1] + mat[2][i] * vec_in[2]
     else:
         print("Invalid mode ", mode)
         sys.exit(1)

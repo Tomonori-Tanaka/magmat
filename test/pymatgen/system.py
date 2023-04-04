@@ -63,11 +63,11 @@ class System:
         self.exist_image = None
 
         # Variables for spins
-        self.spin = Spin();
+        self.spin = Spin()
         self.spin.lspin = False
         self.spin.noncollinear = 0
         self.spin.time_reversal_symm = 1
-        self.str_magmom = "";
+        self.str_magmom = ""
 
         self.set_atomtype_group()
 
@@ -159,7 +159,7 @@ class System:
         for i, xf in enumerate(self.supercell.x_fractional):
             for j in range(3):
                 xf_tmp[j] = xf[j]
-            mathfunctions.rotvec(xc_tmp, xf_tmp, self.supercell.lattice_vector)
+            xc_tmp = mathfunctions.rotvec(xf_tmp, self.supercell.lattice_vector)
             for j in range(3):
                 xtmp[j] = xc_tmp[j]
             self.supercell.x_cartesian[i] = xtmp
@@ -246,7 +246,7 @@ class System:
         x_tmp = [None] * 3
 
         for i in range(self.supercell.number_of_atoms):
-            mathfunctions.rotvec(x_tmp, xf[i], self.supercell.lattice_vector)
+            x_tmp = mathfunctions.rotvec(xf[i], self.supercell.lattice_vector)
 
             for j in range(3):
                 xf[i][j] = x_tmp[j]
@@ -300,7 +300,7 @@ class System:
 
     def set_atomtype_group(self):
         type_tmp = AtomType()
-        set_type = {}
+        set_type = set()
 
         for i in range(self.supercell.number_of_atoms):
             type_tmp.element = self.supercell.kind[i]
@@ -339,7 +339,7 @@ class System:
                 self.x_image[0][i][j] = xf_in[i][j]
 
         # Convert to Cartesian coordinate
-        self.frac2cart(self.x_image)
+        self.frac2cart(self.x_image[0])
 
         for ia in range(-1, 2):
             for ja in range(-1, 2):

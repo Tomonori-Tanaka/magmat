@@ -4,6 +4,7 @@ from pymatgen import symmetry as sym
 from pymatgen.symmetry import site_symmetries
 from pymatgen.symmetry.analyzer import SpacegroupAnalyzer
 import numpy as np
+import system
 
 """
 parser = CifParser("./fe_54.cif")
@@ -34,22 +35,21 @@ def get_pair_list(pair_mother):
     return list
 
 
-array = np.empty(0)
+trans_vec = np.empty(0)
 for vec in vars(finder)["_space_group_data"]["translations"]:
-    if array.size == 0:
-        array = np.array([vec])
-        # array = np.append(array, vec, axis=1)
+    if trans_vec.size == 0:
+        trans_vec = np.array([vec])
     else:
         check = True
-        for vec2 in array:
+        for vec2 in trans_vec:
             vec_tmp = np.subtract(vec, vec2)
             if np.linalg.norm(vec_tmp) < 1e-12:
                 check = False
                 continue
         if check:
-            array = np.append(array, [vec], axis=0)
+            trans_vec = np.append(trans_vec, [vec], axis=0)
 
-print(array)
+# print(trans_vec)
 
 pair_0 = [[0, 0], [[0, 2],
                    [1, 48],
@@ -66,8 +66,19 @@ pair_1 = [[0, 0], [[0, 5],
            [10, 8],
            [13, 4]]]
 
-list = get_pair_list(pair_0)
-print(list)
+# list = get_pair_list(pair_0)
+#print(list)
+
+system = system.System()
+
+a = 2.866
+lavec_in = np.array([[2*a, 0, 0], [0, 2*a, 0], [0, 0, 2*a]])
+lavec_in = lavec_in.T
+# print(lavec_in)
+nat_in = 16
+kind_in = [1]*16
+xf_in =
+
 
 #for t in vars(finder).items():
 #	print(t["_symprec"])
