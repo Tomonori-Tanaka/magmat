@@ -78,9 +78,14 @@ if __name__ == '__main__':
     parser.add_argument('--phi_max',
                         type=float, default=360.,
                         help='maxmum value of phi')
+
     parser.add_argument('-nc',
                         type=int, default=1,
                         help='Specify the number of spin configuration patterns')
+
+    parser.add_argument('-sn',
+                       type=int, default=0,
+                       help='Specify the start number of patterns')
 
     args = parser.parse_args()
 
@@ -88,7 +93,7 @@ if __name__ == '__main__':
     codeobj = get_code_object(code)
     codeobj.load_initial_structure(file_original)
 
-    header_list = [i for i in range(args.nc)]
+    header_list = [i for i in range(args.sn, args.sn + args.nc)]
     for i in range(args.nc):
         moment_directions = generate_spin_conf_openmx(codeobj, args)
         # print(moment_directions)
