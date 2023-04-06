@@ -13,7 +13,8 @@ def get_moments(moments_file, num_atom):
     energies = np.empty(0)
     moments = np.empty(0)
     moments_list = []
-    moments_on_a_pattern = np.empty(0)
+    moments_on_a_pattern = []
+
     with open(moments_file, encoding='utf-8') as file:
         line_counter = 0
         for line in file:
@@ -43,10 +44,12 @@ def get_moments(moments_file, num_atom):
                                               cosine_l,
                                               cosine_m,
                                               cosine_n])
-                if moments_on_a_pattern.size == 0:
-                    moments_on_a_pattern = np.append(moments_on_a_pattern, moment_on_an_atom)
+                if len(moments_on_a_pattern) == 0:
+                    moments_on_a_pattern.append(moment_on_an_atom)
+                    # moments_on_a_pattern = np.append(moments_on_a_pattern, moment_on_an_atom)
                 else:
-                    moments_on_a_pattern = np.stack([moments_on_a_pattern, moment_on_an_atom])
+                    moments_on_a_pattern.append(moment_on_an_atom)
+                    # moments_on_a_pattern = np.stack([moments_on_a_pattern, moment_on_an_atom])
 
                 if line_counter % (num_atom + 1) == num_atom:
                     """
@@ -59,7 +62,7 @@ def get_moments(moments_file, num_atom):
                     moments_list.append(moments_on_a_pattern)
 
                     # initialize moments_on_a_pattern
-                    moments_on_a_pattern = np.empty(0)
+                    moments_on_a_pattern = []
             line_counter += 1
 
     # convert list to ndarray

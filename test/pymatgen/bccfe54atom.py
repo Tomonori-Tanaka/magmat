@@ -5,9 +5,12 @@ from pymatgen.symmetry import site_symmetries
 from pymatgen.symmetry.analyzer import SpacegroupAnalyzer
 import numpy as np
 import sys
+sys.path.append("/Users/tomorin/PycharmProjects/magmat/magmat")
+import pymc as pm
 import system
 import libs.mathfunctions
 from get_moments import get_moments
+from matplotlib import pyplot as plt
 
 """
 parser = CifParser("./fe_54.cif")
@@ -16,8 +19,11 @@ print(structure)
 finder = site_symmetries.get_site_symmetries(structure, 0.01)[0][0]["Rot"]
 print(finder)
 """
+args = sys.argv
+arg1 = args[1]  #vasp structure *.vasp
+arg2 = args[2]  # MOMENTS
 
-poscar = Poscar.from_file('fe_54.vasp',
+poscar = Poscar.from_file(arg1,
                           check_for_POTCAR=False, read_velocities=False)
 structure = poscar.structure
 # print(structure)
@@ -177,5 +183,38 @@ for i, tran_tmp in enumerate(trans_vec):
             sys.exit("ERROR: new_index_tmp is None")
         pair_1_list.append([origin_index_tmp, new_index_tmp])
 
-# for t in vars(finder).items():
-#	print(t["_symprec"])
+# print(pair_0_list)
+
+energies, moments = get_moments(arg2, nat_in)
+print(moments)
+pair_0_dot_sum = []
+pair_1_dot_sum = []
+
+for pattern in moments:
+    pair_0_dot_sum.append(calc_dot_all_pairs(pair_0_list, pattern))
+    pair_1_dot_sum.append(calc_dot_all_pairs(pair_1_list, pattern))
+pair_0_dot_sum = np.array(pair_0_dot_sum)
+pair_1_dot_sum = np.array(pair_1_dot_sum)
+
+#convert Hartree to meV
+energies = energies * 27.2114*1000
+energies = energies - energies.mean()
+with pm.Model() as model:
+    j1 = pm.Normal('j1', mu=0, sigma=100)
+    j2 = pm.Normal('j2', mu=0, sigma=100)
+    # lambda_eff = pm.Normal('lambda_eff', mu = 0, sigma=1000)
+    # noise = pm.Normal('noise', mu=0, sigma=1)
+    noise = pm.HalfFlat('noise')
+    b = pm.Normal('b', mu=energies.mean(), sigma=energies.max() - energies.min())
+    # y_pred = pm.Normal('y_pred', mu=-jij*x, sigma=noise, observed=y)
+    y_pred = pm.Normal('y_pred', mu=-j1*pair_0_dot_sum-j2*pair_1_dot_sum+b, sigma=noise, observed=energies)
+    trace = pm.sample(draws=10000, chains=6)
+
+
+print("J1: ", trace.posterior.j1.values.mean())
+print("J2: ", trace.posterior.j2.values.mean())
+print("b: ", trace.posterior.b.values.mean())
+print("noise: ", trace.posterior.noise.values.mean())
+pm.plot_trace(trace)
+pm.summary(trace)
+plt.show()
