@@ -11,6 +11,7 @@ import system
 import libs.mathfunctions
 from get_moments import get_moments
 from matplotlib import pyplot as plt
+from sklearn.metrics import r2_score
 
 """
 parser = CifParser("./fe_54.cif")
@@ -186,7 +187,6 @@ for i, tran_tmp in enumerate(trans_vec):
 # print(pair_0_list)
 
 energies, moments = get_moments(arg2, nat_in)
-print(moments)
 pair_0_dot_sum = []
 pair_1_dot_sum = []
 
@@ -217,4 +217,17 @@ print("b: ", trace.posterior.b.values.mean())
 print("noise: ", trace.posterior.noise.values.mean())
 pm.plot_trace(trace)
 pm.summary(trace)
+plt.figure()
+
+j1 = trace.posterior.j1.values.mean()
+j2 = trace.posterior.j2.values.mean()
+b = trace.posterior.b.values.mean()
+energies_pred = -j1*pair_0_dot_sum - j2*pair_1_dot_sum + b
+plt.scatter(energies, energies_pred)
+x = np.linspace(-1000, 2000, 10)
+y = x
+plt.plot(x, y)
+plt.figure()
+print(r2_score(energies, energies_pred))
+
 plt.show()
