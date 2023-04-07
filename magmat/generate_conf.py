@@ -40,10 +40,19 @@ def generate_spin_conf_openmx(codeobj, args):
 
     moment_directions = []
     for i in range(nat):
-        theta = np.arccos(-2*np.random.rand() + 1)
-        theta = np.rad2deg(theta)
-        phi = 2*np.pi*np.random.rand()
-        phi = np.rad2deg(phi)
+        # theta = np.arccos(-2*np.random.rand() + 1)
+        # theta = np.rad2deg(theta)
+        while True:
+            theta = np.arccos(-2*np.random.rand() + 1)
+            theta = np.rad2deg(theta)
+            if theta >= theta_min and theta <= theta_max:
+                break
+
+        while True:
+            phi = 2*np.pi*np.random.rand()
+            phi = np.rad2deg(phi)
+            if phi >= phi_min and phi <= phi_max:
+                break
         moment_directions.append([theta, phi, theta, phi])
 
     return moment_directions

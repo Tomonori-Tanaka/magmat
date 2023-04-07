@@ -5,6 +5,7 @@ from pymatgen.symmetry import site_symmetries
 from pymatgen.symmetry.analyzer import SpacegroupAnalyzer
 import numpy as np
 import sys
+
 sys.path.append("/Users/tomorin/PycharmProjects/magmat/magmat")
 import pymc as pm
 import system
@@ -21,7 +22,7 @@ finder = site_symmetries.get_site_symmetries(structure, 0.01)[0][0]["Rot"]
 print(finder)
 """
 args = sys.argv
-arg1 = args[1]  #vasp structure *.vasp
+arg1 = args[1]  # vasp structure *.vasp
 arg2 = args[2]  # MOMENTS
 
 poscar = Poscar.from_file(arg1,
@@ -213,12 +214,12 @@ for i, tran_tmp in enumerate(trans_vec):
         if new_index_tmp == None:
             sys.exit("ERROR: new_index_tmp is None")
         pair_3_list.append([origin_index_tmp, new_index_tmp])
+# print(pair_1_list)
 
 energies, moments = get_moments(arg2, nat_in)
 pair_1_dot_sum = []
 pair_2_dot_sum = []
 pair_3_dot_sum = []
-
 
 for pattern in moments:
     pair_1_dot_sum.append(calc_dot_all_pairs(pair_1_list, pattern))
@@ -230,23 +231,33 @@ pair_2_dot_sum = np.array(pair_2_dot_sum)
 square_pair_2_dot_sum = pair_2_dot_sum ** 2
 pair_3_dot_sum = np.array(pair_3_dot_sum)
 square_pair_3_dot_sum = pair_3_dot_sum ** 2
-print(pair_1_dot_sum)
 
-#convert Hartree to meV
-energies = energies * 27.2114*1000
+# convert Hartree to meV
+energies = energies * 27.2114 * 1000
 energies = energies - energies.mean()
 with pm.Model() as model:
     j1 = pm.Normal('j1', mu=0, sigma=100)
     j2 = pm.Normal('j2', mu=0, sigma=100)
     j3 = pm.Normal('j3', mu=0, sigma=100)
+    lambda1 = pm.Normal('lambda1', mu=0, sigma=100)
+    lambda2 = pm.Normal('lambda2', mu=0, sigma=100)
+    lambda3 = pm.Normal('lambda3', mu=0, sigma=100)
     # lambda_eff = pm.Normal('lambda_eff', mu = 0, sigma=1000)
     # noise = pm.Normal('noise', mu=0, sigma=1)
     noise = pm.HalfFlat('noise')
     b = pm.Normal('b', mu=energies.mean(), sigma=energies.max() - energies.min())
     # y_pred = pm.Normal('y_pred', mu=-jij*x, sigma=noise, observed=y)
-    y_pred = pm.Normal('y_pred', mu=-j1*pair_1_dot_sum-j2*pair_2_dot_sum-j3*pair_3_dot_sum+b, sigma=noise, observed=energies)
+    y_pred = pm.Normal('y_pred',
+                       mu=-j1 * pair_1_dot_sum \
+                          - j2 * pair_2_dot_sum \
+                          - j3 * pair_3_dot_sum \
+                          + lambda1 * square_pair_1_dot_sum \
+                          + lambda2 * square_pair_2_dot_sum \
+                          + lambda3 * square_pair_3_dot_sum \
+                          + b,
+                       sigma=noise,
+                       observed=energies)
     trace = pm.sample(draws=10000, chains=6)
-
 
 print("J1: ", trace.posterior.j1.values.mean())
 print("J1 std: ", trace.posterior.j1.values.std())
@@ -254,29 +265,35 @@ print("J2: ", trace.posterior.j2.values.mean())
 print("J2 std: ", trace.posterior.j2.values.std())
 print("J3: ", trace.posterior.j3.values.mean())
 print("J3 std: ", trace.posterior.j3.values.std())
+print("lambda1: ", trace.posterior.lambda1.values.mean())
+print("lambda1 std: ", trace.posterior.lambda1.values.std())
+print("lambda2: ", trace.posterior.lambda2.values.mean())
+print("lambda2 std: ", trace.posterior.lambda2.values.std())
+print("lambda3: ", trace.posterior.lambda2.values.mean())
+print("lambda3 std: ", trace.posterior.lambda2.values.std())
 print("b: ", trace.posterior.b.values.mean())
 print("b std: ", trace.posterior.b.values.std())
 print("noise: ", trace.posterior.noise.values.mean())
 print("noise std: ", trace.posterior.noise.values.std())
 pm.plot_trace(trace)
-# pm.summary(trace)
+pm.summary(trace)
 plt.figure()
 
 j1 = trace.posterior.j1.values.mean()
 j2 = trace.posterior.j2.values.mean()
 j3 = trace.posterior.j3.values.mean()
+lambda1 = trace.posterior.lambda1.values.mean()
+lambda2 = trace.posterior.lambda2.values.mean()
+lambda3 = trace.posterior.lambda3.values.mean()
 b = trace.posterior.b.values.mean()
-energies_pred = -j1*pair_1_dot_sum - j2*pair_2_dot_sum -j3*pair_3_dot_sum+ b
+energies_pred = -j1 * pair_1_dot_sum - j2 * pair_2_dot_sum - j3 * pair_3_dot_sum \
+                + lambda1 * square_pair_1_dot_sum + lambda2 * square_pair_2_dot_sum + lambda3 * square_pair_3_dot_sum \
+                + b
 plt.scatter(energies, energies_pred)
-# x = np.linspace(-1000, 2000, 10)
-# y = x
-# plt.plot(x, y)
+x = np.linspace(-1000, 2000, 10)
+y = x
+plt.plot(x, y)
 plt.figure()
 print(r2_score(energies, energies_pred))
-
-# index = []
-# for i, energy in enumerate(energies):
-#     index.append(i)
-# plt.bar(index, energies)
 
 plt.show()

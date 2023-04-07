@@ -7,7 +7,7 @@ from magmat.get_moments import get_moments
 # https://qiita.com/takubb/items/a2e02fe61aad80f8f2f3
 
 num_atoms = 2
-#moments_file = "MOMENTS"
+# moments_file = "MOMENTS"
 moments_file = "MOMENTS_small"
 energies, moments = get_moments(moments_file, num_atoms)
 
