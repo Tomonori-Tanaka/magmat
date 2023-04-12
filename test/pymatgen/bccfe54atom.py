@@ -5,6 +5,7 @@ from pymatgen.symmetry import site_symmetries
 from pymatgen.symmetry.analyzer import SpacegroupAnalyzer
 import numpy as np
 import sys
+
 sys.path.append("/Users/tomorin/PycharmProjects/magmat/magmat")
 import pymc as pm
 import system
@@ -21,7 +22,7 @@ finder = site_symmetries.get_site_symmetries(structure, 0.01)[0][0]["Rot"]
 print(finder)
 """
 args = sys.argv
-arg1 = args[1]  #vasp structure *.vasp
+arg1 = args[1]  # vasp structure *.vasp
 arg2 = args[2]  # MOMENTS
 
 poscar = Poscar.from_file(arg1,
@@ -219,7 +220,6 @@ pair_1_dot_sum = []
 pair_2_dot_sum = []
 pair_3_dot_sum = []
 
-
 for pattern in moments:
     pair_1_dot_sum.append(calc_dot_all_pairs(pair_1_list, pattern))
     pair_2_dot_sum.append(calc_dot_all_pairs(pair_2_list, pattern))
@@ -230,11 +230,20 @@ pair_2_dot_sum = np.array(pair_2_dot_sum)
 square_pair_2_dot_sum = pair_2_dot_sum ** 2
 pair_3_dot_sum = np.array(pair_3_dot_sum)
 square_pair_3_dot_sum = pair_3_dot_sum ** 2
-print(pair_1_dot_sum)
+# print(pair_1_dot_sum)
 
-#convert Hartree to meV
-energies = energies * 27.2114*1000
+## standardize ####
+pair_1_dot_sum_stdize = (pair_1_dot_sum - pair_1_dot_sum.mean()) / pair_1_dot_sum.std()
+pair_2_dot_sum_stdize = (pair_2_dot_sum - pair_2_dot_sum.mean()) / pair_2_dot_sum.std()
+pair_3_dot_sum_stdize = (pair_3_dot_sum - pair_3_dot_sum.mean()) / pair_3_dot_sum.std()
+###############
+
+# convert Hartree to meV
+energies = energies * 27.2114 * 1000
 energies = energies - energies.mean()
+
+# plt.bar(pair_1_dot_sum, energies, width=0.1)
+# plt.show()
 with pm.Model() as model:
     j1 = pm.Normal('j1', mu=0, sigma=100)
     j2 = pm.Normal('j2', mu=0, sigma=100)
@@ -242,18 +251,27 @@ with pm.Model() as model:
     # lambda_eff = pm.Normal('lambda_eff', mu = 0, sigma=1000)
     # noise = pm.Normal('noise', mu=0, sigma=1)
     noise = pm.HalfFlat('noise')
-    b = pm.Normal('b', mu=energies.mean(), sigma=energies.max() - energies.min())
+    # b = pm.Normal('b', mu=energies.mean(), sigma=energies.max() - energies.min())
+    b = pm.Normal('b', mu=0, sigma=1000)
     # y_pred = pm.Normal('y_pred', mu=-jij*x, sigma=noise, observed=y)
-    y_pred = pm.Normal('y_pred', mu=-j1*pair_1_dot_sum-j2*pair_2_dot_sum-j3*pair_3_dot_sum+b, sigma=noise, observed=energies)
+    # y_pred = pm.Normal('y_pred', mu=-j1*pair_1_dot_sum-j2*pair_2_dot_sum-j3*pair_3_dot_sum+b, sigma=noise, observed=energies)
+    y_pred = pm.Normal('y_pred', mu= - j1 * pair_1_dot_sum_stdize
+                                     - j2 * pair_2_dot_sum_stdize
+                                     - j3 * pair_3_dot_sum_stdize
+                                     + b, sigma=noise,
+                       observed=energies)
     trace = pm.sample(draws=10000, chains=6)
 
+j1 = trace.posterior.j1.values.mean() / pair_1_dot_sum.std()
+j2 = trace.posterior.j2.values.mean() / pair_2_dot_sum.std()
+j3 = trace.posterior.j3.values.mean() / pair_3_dot_sum.std()
 
-print("J1: ", trace.posterior.j1.values.mean())
-print("J1 std: ", trace.posterior.j1.values.std())
-print("J2: ", trace.posterior.j2.values.mean())
-print("J2 std: ", trace.posterior.j2.values.std())
-print("J3: ", trace.posterior.j3.values.mean())
-print("J3 std: ", trace.posterior.j3.values.std())
+print("J1: ", j1)
+print("J1 std: ", trace.posterior.j1.values.std() / pair_1_dot_sum.std())
+print("J2: ", j2)
+print("J2 std: ", trace.posterior.j2.values.std() / pair_2_dot_sum.std())
+print("J3: ", j3)
+print("J3 std: ", trace.posterior.j3.values.std()/ pair_3_dot_sum.std())
 print("b: ", trace.posterior.b.values.mean())
 print("b std: ", trace.posterior.b.values.std())
 print("noise: ", trace.posterior.noise.values.mean())
@@ -266,7 +284,11 @@ j1 = trace.posterior.j1.values.mean()
 j2 = trace.posterior.j2.values.mean()
 j3 = trace.posterior.j3.values.mean()
 b = trace.posterior.b.values.mean()
-energies_pred = -j1*pair_1_dot_sum - j2*pair_2_dot_sum -j3*pair_3_dot_sum+ b
+# energies_pred = -j1*pair_1_dot_sum - j2*pair_2_dot_sum -j3*pair_3_dot_sum+ b
+energies_pred = - j1 * pair_1_dot_sum_stdize \
+                - j2 * pair_2_dot_sum_stdize \
+                - j3 * pair_3_dot_sum_stdize \
+                + b
 plt.scatter(energies, energies_pred)
 # x = np.linspace(-1000, 2000, 10)
 # y = x
@@ -278,5 +300,6 @@ print(r2_score(energies, energies_pred))
 # for i, energy in enumerate(energies):
 #     index.append(i)
 # plt.bar(index, energies)
+# plt.bar(pair_1_dot_sum, energies)
 
 plt.show()

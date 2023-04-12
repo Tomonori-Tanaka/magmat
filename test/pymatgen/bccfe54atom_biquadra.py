@@ -232,6 +232,15 @@ square_pair_2_dot_sum = pair_2_dot_sum ** 2
 pair_3_dot_sum = np.array(pair_3_dot_sum)
 square_pair_3_dot_sum = pair_3_dot_sum ** 2
 
+## standardize ####
+pair_1_dot_sum_stdize = (pair_1_dot_sum - pair_1_dot_sum.mean()) / pair_1_dot_sum.std()
+pair_2_dot_sum_stdize = (pair_2_dot_sum - pair_2_dot_sum.mean()) / pair_2_dot_sum.std()
+pair_3_dot_sum_stdize = (pair_3_dot_sum - pair_3_dot_sum.mean()) / pair_3_dot_sum.std()
+square_pair_1_dot_sum_stdize = (square_pair_1_dot_sum - square_pair_1_dot_sum.mean()) / square_pair_1_dot_sum.std()
+square_pair_2_dot_sum_stdize = (square_pair_2_dot_sum - square_pair_2_dot_sum.mean()) / square_pair_2_dot_sum.std()
+square_pair_3_dot_sum_stdize = (square_pair_3_dot_sum - square_pair_3_dot_sum.mean()) / square_pair_3_dot_sum.std()
+###############
+
 # convert Hartree to meV
 energies = energies * 27.2114 * 1000
 energies = energies - energies.mean()
@@ -248,35 +257,42 @@ with pm.Model() as model:
     b = pm.Normal('b', mu=energies.mean(), sigma=energies.max() - energies.min())
     # y_pred = pm.Normal('y_pred', mu=-jij*x, sigma=noise, observed=y)
     y_pred = pm.Normal('y_pred',
-                       mu=-j1 * pair_1_dot_sum \
-                          - j2 * pair_2_dot_sum \
-                          - j3 * pair_3_dot_sum \
-                          + lambda1 * square_pair_1_dot_sum \
-                          + lambda2 * square_pair_2_dot_sum \
-                          + lambda3 * square_pair_3_dot_sum \
+                       mu=-j1 * pair_1_dot_sum_stdize \
+                          - j2 * pair_2_dot_sum_stdize \
+                          - j3 * pair_3_dot_sum_stdize \
+                          + lambda1 * square_pair_1_dot_sum_stdize \
+                          + lambda2 * square_pair_2_dot_sum_stdize \
+                          + lambda3 * square_pair_3_dot_sum_stdize \
                           + b,
                        sigma=noise,
                        observed=energies)
     trace = pm.sample(draws=10000, chains=6)
 
-print("J1: ", trace.posterior.j1.values.mean())
-print("J1 std: ", trace.posterior.j1.values.std())
-print("J2: ", trace.posterior.j2.values.mean())
-print("J2 std: ", trace.posterior.j2.values.std())
-print("J3: ", trace.posterior.j3.values.mean())
-print("J3 std: ", trace.posterior.j3.values.std())
-print("lambda1: ", trace.posterior.lambda1.values.mean())
-print("lambda1 std: ", trace.posterior.lambda1.values.std())
-print("lambda2: ", trace.posterior.lambda2.values.mean())
-print("lambda2 std: ", trace.posterior.lambda2.values.std())
-print("lambda3: ", trace.posterior.lambda2.values.mean())
-print("lambda3 std: ", trace.posterior.lambda2.values.std())
+j1 = trace.posterior.j1.values.mean() / pair_1_dot_sum.std()
+j2 = trace.posterior.j2.values.mean() / pair_2_dot_sum.std()
+j3 = trace.posterior.j3.values.mean() / pair_3_dot_sum.std()
+lambda1 = trace.posterior.lambda1.values.mean() / square_pair_1_dot_sum.std()
+lambda2 = trace.posterior.lambda2.values.mean() / square_pair_2_dot_sum.std()
+lambda3 = trace.posterior.lambda3.values.mean() / square_pair_3_dot_sum.std()
+
+print("J1: ", j1)
+print("J1 std: ", trace.posterior.j1.values.std() / pair_1_dot_sum.std())
+print("J2: ", j2)
+print("J2 std: ", trace.posterior.j2.values.std() / pair_2_dot_sum.std())
+print("J3: ", j3)
+print("J3 std: ", trace.posterior.j3.values.std() / pair_3_dot_sum.std())
+print("lambda1: ", lambda1)
+print("lambda1 std: ", trace.posterior.lambda1.values.std() / square_pair_1_dot_sum.std())
+print("lambda2: ", lambda2)
+print("lambda2 std: ", trace.posterior.lambda2.values.std() / square_pair_2_dot_sum.std())
+print("lambda3: ", lambda3)
+print("lambda3 std: ", trace.posterior.lambda2.values.std() / square_pair_3_dot_sum.std())
 print("b: ", trace.posterior.b.values.mean())
 print("b std: ", trace.posterior.b.values.std())
 print("noise: ", trace.posterior.noise.values.mean())
 print("noise std: ", trace.posterior.noise.values.std())
 pm.plot_trace(trace)
-pm.summary(trace)
+# pm.summary(trace)
 plt.figure()
 
 j1 = trace.posterior.j1.values.mean()
@@ -286,13 +302,13 @@ lambda1 = trace.posterior.lambda1.values.mean()
 lambda2 = trace.posterior.lambda2.values.mean()
 lambda3 = trace.posterior.lambda3.values.mean()
 b = trace.posterior.b.values.mean()
-energies_pred = -j1 * pair_1_dot_sum - j2 * pair_2_dot_sum - j3 * pair_3_dot_sum \
-                + lambda1 * square_pair_1_dot_sum + lambda2 * square_pair_2_dot_sum + lambda3 * square_pair_3_dot_sum \
+energies_pred = -j1 * pair_1_dot_sum_stdize - j2 * pair_2_dot_sum_stdize - j3 * pair_3_dot_sum_stdize \
+                + lambda1 * square_pair_1_dot_sum_stdize + lambda2 * square_pair_2_dot_sum_stdize + lambda3 * square_pair_3_dot_sum_stdize \
                 + b
 plt.scatter(energies, energies_pred)
-x = np.linspace(-1000, 2000, 10)
-y = x
-plt.plot(x, y)
+# x = np.linspace(-1000, 2000, 10)
+# y = x
+# plt.plot(x, y)
 plt.figure()
 print(r2_score(energies, energies_pred))
 
