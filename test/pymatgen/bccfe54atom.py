@@ -24,6 +24,8 @@ print(finder)
 args = sys.argv
 arg1 = args[1]  # vasp structure *.vasp
 arg2 = args[2]  # MOMENTS
+arg3 = args[3]  # energy unit eV or Hartree
+
 
 poscar = Poscar.from_file(arg1,
                           check_for_POTCAR=False, read_velocities=False)
@@ -232,14 +234,19 @@ pair_3_dot_sum = np.array(pair_3_dot_sum)
 square_pair_3_dot_sum = pair_3_dot_sum ** 2
 # print(pair_1_dot_sum)
 
+
 ## standardize ####
 pair_1_dot_sum_stdize = (pair_1_dot_sum - pair_1_dot_sum.mean()) / pair_1_dot_sum.std()
 pair_2_dot_sum_stdize = (pair_2_dot_sum - pair_2_dot_sum.mean()) / pair_2_dot_sum.std()
 pair_3_dot_sum_stdize = (pair_3_dot_sum - pair_3_dot_sum.mean()) / pair_3_dot_sum.std()
 ###############
 
-# convert Hartree to meV
-energies = energies * 27.2114 * 1000
+# convert Hartree or eV to meV
+if arg3 == "Hartree":
+    energies = energies * 27.2114 * 1000
+elif arg3 == "eV":
+    energies = energies * 1000
+
 energies = energies - energies.mean()
 
 # plt.bar(pair_1_dot_sum, energies, width=0.1)
