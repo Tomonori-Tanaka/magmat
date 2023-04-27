@@ -119,8 +119,45 @@ pair_3 = [[0, 0], [[0, 18],
                    [13, 17],
                    [13, 20]]]
 
-# list1 = get_pair_list(pair_1)
-# print(list1)
+pair_4 = [[0, 0], [[0, 8],
+                   [0, 10],
+                   [0, 12],
+                   [1, 48],
+                   [1, 50],
+                   [1, 52],
+                   [2, 36],
+                   [2, 37],
+                   [2, 48],
+                   [4, 32],
+                   [4, 33],
+                   [4, 50],
+                   [5, 10],
+                   [5, 33],
+                   [5, 36],
+                   [10, 28],
+                   [10, 29],
+                   [10, 52],
+                   [11, 12],
+                   [11, 28],
+                   [11, 37],
+                   [13, 8],
+                   [13, 29],
+                   [13, 32]]]
+
+# check pair duplication
+for i in pair_1[1]:
+    i = i[1]
+    for j in pair_2[1]:
+        j = j[1]
+        for k in pair_3[1]:
+            k = k[1]
+            for l in pair_4[1]:
+                l = l[1]
+                checklist = [i, j, k, l]
+                if len(set(checklist)) != len(checklist):
+                    sys.exit("ERROR: pair lists has depulication.")
+
+
 
 system = system.System()
 
@@ -146,6 +183,7 @@ system.initialize()
 pair_1_list = get_pair_list(pair_1)
 pair_2_list = get_pair_list(pair_2)
 pair_3_list = get_pair_list(pair_3)
+pair_4_list = get_pair_list(pair_4)
 
 origin_atom_coord = system.x_image[0][0]
 # print(origin_atom_coord)
@@ -217,21 +255,41 @@ for i, tran_tmp in enumerate(trans_vec):
             sys.exit("ERROR: new_index_tmp is None")
         pair_3_list.append([origin_index_tmp, new_index_tmp])
 
+    for pair_4_index in pair_4[1]:
+        icell_index = pair_4_index[0]
+        atom_index = pair_4_index[1]
+        atom_coord = system.x_image[icell_index][atom_index]
+        atom_coord_new = atom_coord + trans_vec_cart
+
+        new_index_tmp = None
+        for icell, atom in enumerate(system.x_image):
+            for k, dummy in enumerate(atom):
+                coord = system.x_image[icell][k]
+                if is_identical_position(atom_coord_new, coord):
+                    new_index_tmp = k
+        if new_index_tmp == None:
+            sys.exit("ERROR: new_index_tmp is None")
+        pair_4_list.append([origin_index_tmp, new_index_tmp])
+
 energies, moments = get_moments(arg2, nat_in)
 pair_1_dot_sum = []
 pair_2_dot_sum = []
 pair_3_dot_sum = []
+pair_4_dot_sum = []
 
 for pattern in moments:
     pair_1_dot_sum.append(calc_dot_all_pairs(pair_1_list, pattern))
     pair_2_dot_sum.append(calc_dot_all_pairs(pair_2_list, pattern))
     pair_3_dot_sum.append(calc_dot_all_pairs(pair_3_list, pattern))
+    pair_4_dot_sum.append(calc_dot_all_pairs(pair_4_list, pattern))
 pair_1_dot_sum = np.array(pair_1_dot_sum)
 square_pair_1_dot_sum = pair_1_dot_sum ** 2
 pair_2_dot_sum = np.array(pair_2_dot_sum)
 square_pair_2_dot_sum = pair_2_dot_sum ** 2
 pair_3_dot_sum = np.array(pair_3_dot_sum)
 square_pair_3_dot_sum = pair_3_dot_sum ** 2
+pair_4_dot_sum = np.array(pair_4_dot_sum)
+square_pair_4_dot_sum = pair_4_dot_sum ** 2
 # print(pair_1_dot_sum)
 
 
@@ -239,6 +297,7 @@ square_pair_3_dot_sum = pair_3_dot_sum ** 2
 pair_1_dot_sum_stdize = (pair_1_dot_sum - pair_1_dot_sum.mean()) / pair_1_dot_sum.std()
 pair_2_dot_sum_stdize = (pair_2_dot_sum - pair_2_dot_sum.mean()) / pair_2_dot_sum.std()
 pair_3_dot_sum_stdize = (pair_3_dot_sum - pair_3_dot_sum.mean()) / pair_3_dot_sum.std()
+pair_4_dot_sum_stdize = (pair_4_dot_sum - pair_4_dot_sum.mean()) / pair_4_dot_sum.std()
 ###############
 
 # convert Hartree or eV to meV
@@ -255,6 +314,7 @@ with pm.Model() as model:
     j1 = pm.Normal('j1', mu=0, sigma=100)
     j2 = pm.Normal('j2', mu=0, sigma=100)
     j3 = pm.Normal('j3', mu=0, sigma=100)
+    j4 = pm.Normal('j4', mu=0, sigma=100)
     # lambda_eff = pm.Normal('lambda_eff', mu = 0, sigma=1000)
     # noise = pm.Normal('noise', mu=0, sigma=1)
     noise = pm.HalfFlat('noise')
@@ -265,13 +325,15 @@ with pm.Model() as model:
     y_pred = pm.Normal('y_pred', mu= - j1 * pair_1_dot_sum_stdize
                                      - j2 * pair_2_dot_sum_stdize
                                      - j3 * pair_3_dot_sum_stdize
+                                     - j4 * pair_4_dot_sum_stdize
                                      + b, sigma=noise,
                        observed=energies)
-    trace = pm.sample(draws=10000, chains=6)
+    trace = pm.sample(draws=15000, chains=6)
 
 j1 = trace.posterior.j1.values.mean() / pair_1_dot_sum.std()
 j2 = trace.posterior.j2.values.mean() / pair_2_dot_sum.std()
 j3 = trace.posterior.j3.values.mean() / pair_3_dot_sum.std()
+j4 = trace.posterior.j4.values.mean() / pair_4_dot_sum.std()
 
 print("J1: ", j1)
 print("J1 std: ", trace.posterior.j1.values.std() / pair_1_dot_sum.std())
@@ -279,6 +341,8 @@ print("J2: ", j2)
 print("J2 std: ", trace.posterior.j2.values.std() / pair_2_dot_sum.std())
 print("J3: ", j3)
 print("J3 std: ", trace.posterior.j3.values.std()/ pair_3_dot_sum.std())
+print("J4: ", j4)
+print("J4 std: ", trace.posterior.j4.values.std()/ pair_4_dot_sum.std())
 print("b: ", trace.posterior.b.values.mean())
 print("b std: ", trace.posterior.b.values.std())
 print("noise: ", trace.posterior.noise.values.mean())
@@ -290,11 +354,13 @@ plt.figure()
 j1 = trace.posterior.j1.values.mean()
 j2 = trace.posterior.j2.values.mean()
 j3 = trace.posterior.j3.values.mean()
+j4 = trace.posterior.j4.values.mean()
 b = trace.posterior.b.values.mean()
 # energies_pred = -j1*pair_1_dot_sum - j2*pair_2_dot_sum -j3*pair_3_dot_sum+ b
 energies_pred = - j1 * pair_1_dot_sum_stdize \
                 - j2 * pair_2_dot_sum_stdize \
                 - j3 * pair_3_dot_sum_stdize \
+                - j4 * pair_4_dot_sum_stdize \
                 + b
 plt.scatter(energies, energies_pred)
 # x = np.linspace(-1000, 2000, 10)
